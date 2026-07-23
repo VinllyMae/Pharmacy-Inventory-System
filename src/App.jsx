@@ -1,19 +1,28 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
-import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Columns from "./pages/Columns";
 import Reports from "./pages/Reports";
 
+import DashboardLayout from "./layouts/DashboardLayout";
+
 export default function App() {
   return (
     <Routes>
+
       <Route path="/" element={<Login />} />
-      <Route path="/home" element={<Home />} />
-      <Route path="/products" element={<Products />} />
-      <Route path="/columns" element={<Columns />} />
-      <Route path="/reports" element={<Reports />} />
+
+      <Route element={<DashboardLayout />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/columns" element={<Columns />} />
+        <Route path="/reports" element={<Reports />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" />} />
+
     </Routes>
   );
 }
