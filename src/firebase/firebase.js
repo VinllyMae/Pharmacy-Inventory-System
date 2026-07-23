@@ -2,19 +2,33 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAOvQADU1Sgf05GdrnL0kAxRsBWId7Twdk",
-  authDomain: "medtrack-4132d.firebaseapp.com",
-  projectId: "medtrack-4132d",
-  storageBucket: "medtrack-4132d.firebasestorage.app",
-  messagingSenderId: "759949378367",
-  appId: "1:759949378367:web:5b0c845197a9fd517d898a",
+
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+
 };
+
+
 
 const app = initializeApp(firebaseConfig);
 
-// Export Firebase services
+
+// Firebase Services
+
 export const db = getFirestore(app);
+
 export const auth = getAuth(app);
+
 
 export default app;

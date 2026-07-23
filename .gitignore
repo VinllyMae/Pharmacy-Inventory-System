@@ -1,5 +1,8 @@
+# =========================
 # Logs
-logs
+# =========================
+
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,18 +10,86 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+
+# =========================
+# Dependencies
+# =========================
+
+node_modules/
+
+
+# =========================
+# Build Output
+# =========================
+
+dist/
+dist-ssr/
+build/
+
+
+# =========================
+# Environment Variables (IMPORTANT)
+# =========================
+
+.env
+.env.*
+!.env.example
+
+
+# =========================
+# Firebase Sensitive / Local Files
+# =========================
+
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Firebase service account keys
+serviceAccountKey.json
+firebase-adminsdk*.json
+*.pem
+
+
+# =========================
+# Local Config
+# =========================
+
 *.local
 
-# Editor directories and files
-.vscode/*
+
+# =========================
+# IDE Files
+# =========================
+
+.vscode/
 !.vscode/extensions.json
-.idea
+
+.idea/
+
 .DS_Store
+
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+
+# =========================
+# Temporary Files
+# =========================
+
+*.tmp
+*.temp
+*.cache
+
+.env
+.env.*
+!.env.example
+
+# =========================
+# OS Files
+# =========================
+
+Thumbs.db
