@@ -5,6 +5,8 @@ import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Columns from "./pages/Columns";
 import Reports from "./pages/Reports";
+import Delivery from "./pages/Delivery";
+import DeliveryLogs from "./pages/DeliveryLogs";
 
 import DashboardLayout from "./layouts/DashboardLayout";
 
@@ -19,6 +21,8 @@ export default function App() {
         <Route path="/products" element={<Products />} />
         <Route path="/columns" element={<Columns />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/delivery" element={<Delivery />} />
+        <Route path="/delivery-logs" element={<DeliveryLogs />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />

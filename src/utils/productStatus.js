@@ -1,4 +1,4 @@
-export function getProductStatus(product) {
+export function getProductStatus(product, columns = []) {
   const today = new Date();
   const expiry = new Date(product.expiryDate);
 
@@ -16,7 +16,20 @@ export function getProductStatus(product) {
   const daysRemaining =
     (expiry - today) / (1000 * 60 * 60 * 24);
 
-  if (daysRemaining <= 30) {
+  const expiryDaysColumn = columns.find(
+    (c) => c.label.trim().toLowerCase() === "expiry days"
+  );
+
+  const productThreshold = Number(
+    product.customFields?.[expiryDaysColumn?.field]
+  );
+
+  const threshold =
+    Number.isFinite(productThreshold) && productThreshold > 0
+      ? productThreshold
+      : 30;
+
+  if (daysRemaining <= threshold) {
     return {
       text: "Expiring Soon",
       color: "bg-orange-500",

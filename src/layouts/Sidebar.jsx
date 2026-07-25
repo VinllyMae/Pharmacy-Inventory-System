@@ -3,6 +3,8 @@ import {
     FaHome,
     FaBoxes,
     FaColumns,
+    FaTruck,
+    FaClipboardList,
     FaSignOutAlt,
 } from "react-icons/fa";
 
@@ -24,27 +26,32 @@ export default function Sidebar() {
 
 
 
-
     const menu = [
-
         {
             name: "Dashboard",
             path: "/dashboard",
             icon: <FaHome />,
         },
-
         {
             name: "Products",
             path: "/products",
             icon: <FaBoxes />,
         },
-
+        {
+            name: "New Delivery",
+            path: "/delivery",
+            icon: <FaTruck />,
+        },
+        {
+            name: "Delivery Logs",
+            path: "/delivery-logs",
+            icon: <FaClipboardList />,
+        },
         {
             name: "Table Data",
             path: "/columns",
             icon: <FaColumns />,
         },
-
     ];
 
 
@@ -53,7 +60,7 @@ export default function Sidebar() {
 
 
 
-    async function handleLogout(){
+    async function handleLogout() {
 
 
         try {
@@ -66,7 +73,7 @@ export default function Sidebar() {
 
 
 
-        } catch(error){
+        } catch (error) {
 
 
             console.error(
@@ -126,7 +133,7 @@ export default function Sidebar() {
                     rounded-2xl
                 ">
 
-                    <FaCapsules size={28}/>
+                    <FaCapsules size={28} />
 
                 </div>
 
@@ -185,7 +192,7 @@ export default function Sidebar() {
 
 
                 {
-                    menu.map((item)=>(
+                    menu.map((item) => (
 
 
                         <NavLink
@@ -195,7 +202,7 @@ export default function Sidebar() {
                             to={item.path}
 
 
-                            className={({isActive}) =>
+                            className={({ isActive }) =>
 
                                 `
                                 flex
@@ -207,8 +214,7 @@ export default function Sidebar() {
                                 transition
                                 font-medium
 
-                                ${
-                                    isActive
+                                ${isActive
 
                                     ?
 
@@ -290,29 +296,11 @@ export default function Sidebar() {
                         transition
                         font-medium
                     "
-
-
                 >
-
-
-                    <FaSignOutAlt className="text-lg"/>
-
-
+                    <FaSignOutAlt className="text-lg" />
                     Logout
-
-
-
                 </button>
-
-
-
             </div>
-
-
-
-
-
-
         </aside>
 
     );

@@ -212,8 +212,7 @@ export default function Products() {
                             text-slate-800
                         "
           >
-            Products
-          </h1>
+         </h1>
 
 
           <p
