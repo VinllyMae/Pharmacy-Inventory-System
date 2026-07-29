@@ -53,8 +53,6 @@ export default function Navbar() {
         text-slate-700
       ">
 
-        Pharmacy Dashboard
-
       </h1>
 
 

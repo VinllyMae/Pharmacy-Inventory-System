@@ -6,6 +6,7 @@ import {
   orderBy,
   getDocs,
 } from "firebase/firestore";
+
 import { db } from "../firebase/firebase";
 
 const deliveryRef = collection(db, "deliveries");
@@ -18,11 +19,24 @@ export async function addDelivery(data) {
 }
 
 export async function getDeliveries() {
-  const q = query(deliveryRef, orderBy("createdAt", "desc"));
+  const q = query(
+    deliveryRef,
+    orderBy("createdAt", "desc")
+  );
+
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map(doc => ({
+  return snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
   }));
+}
+
+export async function generateSiNumber() {
+  const snapshot = await getDocs(deliveryRef);
+
+  const count = snapshot.size + 1;
+  const year = new Date().getFullYear();
+
+  return `SI-${year}-${String(count).padStart(4, "0")}`;
 }

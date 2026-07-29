@@ -7,326 +7,145 @@ import ProductTable from "../components/products/ProductTable";
 
 import {
   getProducts,
-  updateProductQuantity
+  updateProductQuantity,
 } from "../services/productService";
 
 import { getColumns } from "../services/columnService";
 
-
 export default function Products() {
-
-
   const [open, setOpen] = useState(false);
-
   const [selectedProduct, setSelectedProduct] = useState(null);
-
-
   const [products, setProducts] = useState([]);
-
   const [columns, setColumns] = useState([]);
-
-
+  const [loading, setLoading] = useState(false);
 
   async function loadData() {
+    try {
+      setLoading(true);
 
-    const [
-      productData,
-      columnData
-    ] = await Promise.all([
-      getProducts(),
-      getColumns(),
-    ]);
+      const [productData, columnData] = await Promise.all([
+        getProducts(),
+        getColumns(),
+      ]);
 
+      setProducts(productData || []);
 
-    setProducts(productData);
-
-    setColumns(
-      columnData.filter(
-        (c) => c.visible
-      )
-    );
-
+      setColumns(
+        (columnData || []).filter((column) => column.visible)
+      );
+    } catch (error) {
+      console.error("Failed loading products:", error);
+    } finally {
+      setLoading(false);
+    }
   }
 
-
-
-
   useEffect(() => {
-
     loadData();
-
   }, []);
 
-
-
-
-
-
   const handleAdd = () => {
-
     setSelectedProduct(null);
-
     setOpen(true);
-
   };
-
-
-
-
 
   const handleEdit = (product) => {
-
     setSelectedProduct(product);
-
     setOpen(true);
-
   };
 
-
-
-
-
-
-  // STOCK IN
+  const getProductName = (product) => {
+    return (
+      product.productName ||
+      product.name ||
+      product.product ||
+      "Product"
+    );
+  };
 
   const handleStockIn = async (product) => {
-
-
+    console.log("product", product);
     const amount = Number(
-      prompt(
-        `Add stock quantity for ${product.productName}`
-      )
+      prompt(`Add stock quantity for ${getProductName(product)}`)
     );
 
+    if (!amount || amount <= 0) return;
 
-
-    if (!amount || amount <= 0) {
-
-      return;
-
-    }
-
-
-
-
-    await updateProductQuantity(
-      product.id,
-      product.quantity + amount
-    );
-
-
-
-    loadData();
-
-  };
-
-
-
-
-
-
-
-  // STOCK OUT
-
-  const handleStockOut = async (product) => {
-
-
-    const amount = Number(
-      prompt(
-        `Remove stock quantity for ${product.productName}`
-      )
-    );
-
-
-
-    if (!amount || amount <= 0) {
-
-      return;
-
-    }
-
-
-
-
-
-    if (amount > product.quantity) {
-
-
-      alert(
-        "Stock quantity is not enough"
+    try {
+      await updateProductQuantity(
+        product.id,
+        Number(product.quantity || 0) + amount
       );
 
-
-      return;
-
+      loadData();
+    } catch (error) {
+      console.error("Stock in failed:", error);
     }
-
-
-
-
-
-    await updateProductQuantity(
-      product.id,
-      product.quantity - amount
-    );
-
-
-
-    loadData();
-
   };
 
+  const handleStockOut = async (product) => {
+    const amount = Number(
+      prompt(`Remove stock quantity for ${getProductName(product)}`)
+    );
 
+    if (!amount || amount <= 0) return;
 
+    const currentQuantity = Number(product.quantity || 0);
 
+    if (amount > currentQuantity) {
+      alert("Stock quantity is not enough");
+      return;
+    }
 
+    try {
+      await updateProductQuantity(
+        product.id,
+        currentQuantity - amount
+      );
 
+      loadData();
+    } catch (error) {
+      console.error("Stock out failed:", error);
+    }
+  };
+
+  const closeModal = () => {
+    setOpen(false);
+    setSelectedProduct(null);
+  };
 
   return (
-
-    <div
-      className="
-                space-y-6
-            "
-    >
-
-
-
-      {/* HEADER */}
-
-      <div
-        className="
-                    flex
-                    justify-between
-                    items-center
-                "
-      >
-
-
-        <div>
-
-          <h1
-            className="
-                            text-3xl
-                            font-bold
-                            text-slate-800
-                        "
-          >
-         </h1>
-
-
-          <p
-            className="
-                            text-gray-500
-                            mt-1
-                        "
-          >
-            Manage pharmacy inventory and stock levels.
-          </p>
-
-
-        </div>
-
-
-
-
-
-        <Button
-          className="
-                        bg-blue-600
-                        text-white
-                        hover:bg-blue-700
-                    "
-          onClick={handleAdd}
-        >
-
-          + Add Product
-
-        </Button>
-
-
+    <div className="space-y-6 w-full min-w-0">
+      <div className="w-full overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center items-center py-20 text-slate-500">
+            Loading products...
+          </div>
+        ) : (
+          <ProductTable
+            products={products}
+            columns={columns}
+            onEdit={handleEdit}
+            onStockIn={handleStockIn}
+            onStockOut={handleStockOut}
+            onAdd={handleAdd}
+          />
+        )}
       </div>
 
-
-
-
-
-
-
-
-
-      {/* TABLE */}
-
-
-      <ProductTable
-
-        products={products}
-
-        columns={columns}
-
-        onEdit={handleEdit}
-
-        onStockIn={handleStockIn}
-
-        onStockOut={handleStockOut}
-
-      />
-
-
-
-
-
-
-
-
-
-      {/* MODAL */}
-
-
       <Modal
-
         open={open}
-
-        title={
-           "Product Information"
-        }
-
-
-        onClose={() => {
-
-          setOpen(false);
-
-          setSelectedProduct(null);
-
-        }}
-
+        title="Product Information"
+        onClose={closeModal}
       >
-
-
         <ProductForm
-
           product={selectedProduct}
-
-
           onSuccess={() => {
-
-            setOpen(false);
-
-            setSelectedProduct(null);
-
+            closeModal();
             loadData();
-
           }}
-
         />
-
-
       </Modal>
-
-
-
     </div>
-
   );
-
 }

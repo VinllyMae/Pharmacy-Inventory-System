@@ -7,7 +7,9 @@ import {
     updateProductQuantity,
 } from "../services/productService";
 import { getColumns } from "../services/columnService";
-import { addDelivery } from "../services/deliveryService";
+import { addDelivery, generateSiNumber } from "../services/deliveryService";
+import Button from "../components/ui/Button";
+
 
 export default function Delivery() {
     const [products, setProducts] = useState([]);
@@ -15,7 +17,7 @@ export default function Delivery() {
     const [loading, setLoading] = useState(true);
     const [exporting, setExporting] = useState(false);
     const [saved, setSaved] = useState(false);
-
+    const [searchProduct, setSearchProduct] = useState("");
     const [selectedProductId, setSelectedProductId] = useState("");
     const [quantity, setQuantity] = useState(1);
     const [items, setItems] = useState([]);
@@ -27,7 +29,7 @@ export default function Delivery() {
     const [paymentDue, setPaymentDue] = useState("");
 
     const [signatoriesOpen, setSignatoriesOpen] = useState(false);
-
+    const [showProductList, setShowProductList] = useState(false);
     const [preparedSoBy, setPreparedSoBy] = useState("");
     const [checkedBy, setCheckedBy] = useState("");
     const [deliveredBy, setDeliveredBy] = useState("");
@@ -46,8 +48,14 @@ export default function Delivery() {
         setLoading(false);
     }
 
+    async function loadSiNumber() {
+        const number = await generateSiNumber();
+        setSiNo(number);
+    }
+
     useEffect(() => {
         loadData();
+        loadSiNumber();
     }, []);
 
     const priceColumn = columns.find(
@@ -59,10 +67,10 @@ export default function Delivery() {
     );
 
     const getPrice = (product) =>
-        Number(product?.customFields?.[priceColumn?.field]) || 0;
+        Number(product?.customFields?.[priceColumn?.id]) || 0;
 
     const getBatchNo = (product) =>
-        product?.customFields?.[batchColumn?.field] || "-";
+        product?.customFields?.[batchColumn?.id] || "-";
 
     const selectedProduct = products.find((p) => p.id === selectedProductId);
 
@@ -74,7 +82,7 @@ export default function Delivery() {
 
         if (alreadyAdded + quantity > selectedProduct.quantity) {
             alert(
-                `Only ${selectedProduct.quantity} in stock for ${selectedProduct.productName} (${alreadyAdded} already added).`
+                `Only ${selectedProduct.quantity} in stock for ${formatProductName(selectedProduct)} (${alreadyAdded} already added).`
             );
             return;
         }
@@ -92,10 +100,12 @@ export default function Delivery() {
                 ...prev,
                 {
                     id: selectedProduct.id,
-                    productName: selectedProduct.productName,
-                    batchNo: getBatchNo(selectedProduct),
-                    expiryDate: selectedProduct.expiryDate,
-                    price: getPrice(selectedProduct),
+
+                    productName: formatProductName(selectedProduct),
+
+                    // keep the whole product fields
+                    customFields: selectedProduct.customFields,
+
                     quantity,
                 },
             ];
@@ -115,9 +125,16 @@ export default function Delivery() {
         [items]
     );
 
+    const getItemPrice = (item) =>
+        Number(item?.customFields?.[priceColumn?.id]) || 0;
+
     const grandTotal = useMemo(
-        () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
-        [items]
+        () =>
+            items.reduce(
+                (sum, item) => sum + getItemPrice(item) * item.quantity,
+                0
+            ),
+        [items, priceColumn]
     );
 
     const signatoriesFilledCount = [
@@ -178,7 +195,7 @@ export default function Delivery() {
 
             window.print();
 
-            resetForm();
+            await resetForm();
         } catch (error) {
             console.error("Saving delivery failed:", error);
 
@@ -188,14 +205,13 @@ export default function Delivery() {
         }
     };
 
-    const resetForm = () => {
+    const resetForm = async () => {
         setSelectedProductId("");
         setQuantity(1);
         setItems([]);
 
         setCustomerName("");
         setAddress("");
-        setSiNo("");
         setDate("");
         setPaymentDue("");
 
@@ -207,12 +223,47 @@ export default function Delivery() {
         setReceivedBy("");
 
         setSaved(false);
+
+        await loadSiNumber();
     };
 
     if (loading) {
         return <div className="p-6 text-gray-500">Loading...</div>;
     }
 
+    const formatProductName = (product) => {
+        if (!product.customFields) {
+            return "Unnamed Product";
+        }
+
+        const values = columns
+            .filter((column) => column.visible)
+            .slice(0, 5)
+            .map((column, index) => {
+
+                let value = product.customFields[column.id];
+
+                if (!value) return null;
+
+                value = String(value).trim();
+
+                // 3rd column = Mg
+                if (index === 2) {
+                    value = `${value}MG`;
+                }
+
+                // 5th column = Pack Size
+                if (index === 4) {
+                    value = `${value}'S`;
+                }
+
+                return value;
+
+            })
+            .filter(Boolean);
+
+        return values.join(" ");
+    };
     return (
         <div>
             <div className="flex justify-end p-1 no-print">
@@ -286,7 +337,7 @@ export default function Delivery() {
                                     className="w-full border rounded-md px-3 py-2"
                                     value={customerName}
                                     onChange={(e) => setCustomerName(e.target.value)}
-                                    placeholder="LRC PHARMACEUTICAL PRODUCTS TRADING"
+                                    placeholder="Company Name"
                                 />
                             </div>
 
@@ -306,14 +357,13 @@ export default function Delivery() {
                                 <label className="block text-sm font-medium mb-1">
                                     SI No.
                                 </label>
+
                                 <input
-                                    className="w-full border rounded-md px-3 py-2"
+                                    className="w-full border rounded-md px-3 py-2 bg-slate-100"
                                     value={siNo}
-                                    onChange={(e) => setSiNo(e.target.value)}
-                                    placeholder="2026-0023"
+                                    readOnly
                                 />
                             </div>
-
                             <div>
                                 <label className="block text-sm font-medium mb-1">
                                     Date
@@ -341,57 +391,230 @@ export default function Delivery() {
                     </div>
 
                     {/* Add item */}
-                    <div className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
-                        <h2 className="text-lg font-semibold text-slate-800">
-                            Add item
-                        </h2>
+                    {/* Add item */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
 
                         <div>
-                            <label className="block text-sm font-medium mb-1">
-                                Product
-                            </label>
-                            <select
-                                className="w-full border rounded-md px-3 py-2"
-                                value={selectedProductId}
-                                onChange={(e) => setSelectedProductId(e.target.value)}
-                            >
-                                <option value="">Select a product</option>
-                                {products.map((product) => (
-                                    <option key={product.id} value={product.id}>
-                                        {product.productName} ({product.quantity} in stock)
-                                    </option>
-                                ))}
-                            </select>
+                            <h2 className="text-lg font-semibold text-slate-800">
+                                Add Item
+                            </h2>
+
+                            <p className="text-sm text-slate-500">
+                                Select products from inventory
+                            </p>
                         </div>
 
+
+                        {/* Product Search */}
                         <div>
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Product
+                            </label>
+
+                            <div className="relative">
+
+                                <input
+                                    type="text"
+                                    placeholder="Search product..."
+                                    value={searchProduct}
+                                    onChange={(e) => {
+                                        setSearchProduct(e.target.value);
+                                        setShowProductList(true);
+                                        setSelectedProductId("");
+                                    }}
+                                    onFocus={() => setShowProductList(true)}
+                                    className="
+                    w-full
+                    rounded-xl
+                    border
+                    border-slate-200
+                    px-4
+                    py-2.5
+                    outline-none
+                    focus:ring-2
+                    focus:ring-blue-500
+                "
+                                />
+
+
+                                {showProductList && searchProduct.trim() !== "" && (
+
+                                    <div
+                                        className="
+                        absolute
+                        z-30
+                        mt-2
+                        w-full
+                        bg-white
+                        border
+                        border-slate-200
+                        rounded-xl
+                        shadow-lg
+                        max-h-60
+                        overflow-y-auto
+                    "
+                                    >
+
+                                        {products
+                                            .filter((product) =>
+                                                formatProductName(product)
+                                                    .toLowerCase()
+                                                    .includes(searchProduct.toLowerCase())
+                                            )
+                                            .map((product) => (
+
+                                                <button
+                                                    key={product.id}
+                                                    type="button"
+                                                    onClick={() => {
+
+                                                        setSelectedProductId(product.id);
+
+                                                        setSearchProduct(
+                                                            formatProductName(product)
+                                                        );
+
+                                                        setShowProductList(false);
+
+                                                        setQuantity(1);
+                                                    }}
+
+                                                    className="
+                                    w-full
+                                    text-left
+                                    px-4
+                                    py-3
+                                    hover:bg-slate-50
+                                    transition
+                                "
+                                                >
+
+                                                    <div className="font-medium text-slate-800">
+                                                        {formatProductName(product)}
+                                                    </div>
+
+
+                                                    <div className="text-sm text-slate-500">
+                                                        {product.quantity} in stock
+                                                    </div>
+
+                                                </button>
+
+                                            ))}
+
+
+                                        {products.filter((product) =>
+                                            formatProductName(product)
+                                                .toLowerCase()
+                                                .includes(searchProduct.toLowerCase())
+                                        ).length === 0 && (
+
+                                                <div className="
+                            px-4
+                            py-3
+                            text-sm
+                            text-slate-500
+                        ">
+                                                    No product found
+                                                </div>
+
+                                            )}
+
+                                    </div>
+
+                                )}
+
+                            </div>
+                        </div>
+
+
+
+                        {/* Quantity */}
+                        <div>
+
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
                                 Quantity
                             </label>
+
+
                             <input
                                 type="number"
                                 min={1}
-                                className="w-full border rounded-md px-3 py-2"
+                                max={selectedProduct?.quantity || 1}
                                 value={quantity}
-                                onChange={(e) =>
-                                    setQuantity(Math.max(1, Number(e.target.value)))
-                                }
+
+                                onChange={(e) => {
+
+                                    let value = Number(e.target.value);
+
+                                    if (value < 1) value = 1;
+
+                                    if (
+                                        selectedProduct &&
+                                        value > selectedProduct.quantity
+                                    ) {
+                                        value = selectedProduct.quantity;
+                                    }
+
+                                    setQuantity(value);
+
+                                }}
+
+                                className="
+                w-full
+                rounded-xl
+                border
+                border-slate-200
+                px-4
+                py-2.5
+                outline-none
+                focus:ring-2
+                focus:ring-blue-500
+            "
                             />
+
                         </div>
 
+
+
+                        {/* Add Button */}
                         <button
                             onClick={handleAddItem}
                             disabled={!selectedProduct}
-                            className="w-full bg-blue-600 text-white rounded-md py-2 font-medium hover:bg-blue-700 disabled:opacity-50"
+                            className="
+            w-full
+            bg-blue-600
+            text-white
+            rounded-xl
+            py-3
+            font-medium
+            hover:bg-blue-700
+            transition
+            disabled:opacity-50
+            disabled:cursor-not-allowed
+        "
                         >
-                            Add to receipt
+                            Add to Receipt
                         </button>
 
+
+
                         {!priceColumn && (
-                            <p className="text-xs text-amber-600">
-                                No column labeled "Price" was found — prices will show as 0.
+
+                            <p
+                                className="
+                text-xs
+                text-amber-600
+                bg-amber-50
+                rounded-lg
+                p-3
+            "
+                            >
+                                No column labeled "Price" was found. Prices will default to ₱0.
                             </p>
+
                         )}
+
                     </div>
                 </div>
 
@@ -421,6 +644,7 @@ export default function Delivery() {
                                 receivedBy,
                             }}
                             onRemoveItem={handleRemoveItem}
+                            columns={columns}
                         />
                     </div>
                 </div>

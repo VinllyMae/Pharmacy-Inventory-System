@@ -13,44 +13,50 @@ export default function ProductForm({
   onSuccess,
 }) {
   const [columns, setColumns] = useState([]);
-
-  const [productName, setProductName] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-
-  const [customFields, setCustomFields] = useState({});
+  const [formData, setFormData] = useState({});
 
   useEffect(() => {
     async function loadColumns() {
       const data = await getColumns();
-      setColumns(data.filter((c) => c.visible));
+
+      setColumns(
+        data.filter((column) =>
+          column.visible &&
+          column.label.toLowerCase() !== "status"
+        )
+      );
     }
 
     loadColumns();
   }, []);
 
   useEffect(() => {
-    if (product) {
-      setProductName(product.productName || "");
-      setQuantity(product.quantity || "");
-      setExpiryDate(product.expiryDate || "");
-      setCustomFields(product.customFields || {});
-    } else {
-      setProductName("");
-      setQuantity("");
-      setExpiryDate("");
-      setCustomFields({});
-    }
-  }, [product]);
+    if (!columns.length) return;
+
+    const values = {};
+
+    columns.forEach((column) => {
+      values[column.id] =
+        product?.customFields?.[column.id] || "";
+    });
+
+    setFormData(values);
+  }, [product, columns]);
+
+  function handleChange(field, value) {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
 
     const payload = {
-      productName,
-      quantity: Number(quantity),
-      expiryDate,
-      customFields,
+      customFields: {
+        ...formData,
+      },
     };
 
     if (product) {
@@ -59,56 +65,44 @@ export default function ProductForm({
       await addProduct(payload);
     }
 
-    if (onSuccess) onSuccess();
+    onSuccess?.();
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-
-      <Input
-        label="Product Name"
-        value={productName}
-        onChange={(e) => setProductName(e.target.value)}
-      />
-
-      <Input
-        label="Quantity"
-        type="number"
-        value={quantity}
-        onChange={(e) => setQuantity(e.target.value)}
-      />
-
-      <Input
-        label="Expiry Date"
-        type="date"
-        value={expiryDate}
-        onChange={(e) => setExpiryDate(e.target.value)}
-      />
-
-      {columns.map((column) => (
-        <Input
-          key={column.id}
-          label={column.label}
-          type={column.type}
-          value={customFields[column.field] || ""}
-          onChange={(e) =>
-            setCustomFields((prev) => ({
-              ...prev,
-              [column.field]: e.target.value,
-            }))
-          }
-        />
-      ))}
-
-      <div className="flex justify-end mt-6">
-        <Button
-          type="submit"
-          className="bg-green-600 text-white hover:bg-green-700"
-        >
-          {product ? "Update Product" : "Save Product"}
-        </Button>
+    <form
+      onSubmit={handleSubmit}
+      className="flex h-full flex-col"
+    >
+      <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[65vh]">
+        {columns.map((column) => (
+          <Input
+            key={column.id}
+            label={column.label}
+            type={column.type}
+            required={column.required}
+            value={formData[column.id] || ""}
+            onChange={(e) =>
+              handleChange(
+                column.id,
+                e.target.value
+              )
+            }
+          />
+        ))}
       </div>
 
+      <div className="sticky bottom-0 mt-6 border-t bg-white pt-4">
+        <div className="flex justify-end">
+          <Button
+            type="submit"
+            className="bg-green-600 text-white hover:bg-green-700"
+          >
+            {product
+              ? "Update Product"
+              : "Save Product"}
+          </Button>
+        </div>
+      </div>
     </form>
   );
 }

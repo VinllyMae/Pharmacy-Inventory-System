@@ -8,78 +8,73 @@ import {
   query,
   orderBy,
   Timestamp,
+  writeBatch,
 } from "firebase/firestore";
 
 import { db } from "../firebase/firebase";
 
 
-const columnRef = collection(db, "columns");
+const columnRef = collection(
+  db,
+  "columns"
+);
 
 
 
-// Get all columns
 export async function getColumns() {
 
-  const q = query(
-    columnRef,
-    orderBy("order")
-  );
+  try {
+
+    const q = query(
+      columnRef,
+      orderBy("order")
+    );
 
 
-  const snapshot = await getDocs(q);
+    const snapshot = await getDocs(q);
 
 
-  return snapshot.docs.map((doc) => ({
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
-    id: doc.id,
 
-    ...doc.data(),
+  } catch (error) {
 
-  }));
+    console.error(
+      "Error fetching columns:",
+      error
+    );
+
+    return [];
+
+  }
 
 }
 
 
 
 
-// Add a new column
 export async function addColumn(column) {
 
-
-  const field = column.label
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "_")
-    .replace(/[^a-z0-9_]/g, "");
-
-
-
-  return await addDoc(columnRef, {
-
+  return addDoc(columnRef, {
 
     label: column.label,
 
-
-    field,
-
-
     type: column.type,
 
+    required: column.required ?? false,
 
-    required: column.required,
+    visible: column.visible ?? true,
 
-
-    visible: column.visible,
-
-
-    order: column.order,
+    // controls drag order only
+    order: column.order ?? 0,
 
 
     createdAt: Timestamp.now(),
 
-
     updatedAt: Timestamp.now(),
-
 
   });
 
@@ -88,25 +83,27 @@ export async function addColumn(column) {
 
 
 
+export async function updateColumn(
+  id,
+  data
+) {
 
-
-// Update existing column
-export async function updateColumn(id, data) {
-
-
-  return await updateDoc(
-
+  return updateDoc(
     doc(db, "columns", id),
-
     {
 
-      ...data,
+      label: data.label,
+
+      type: data.type,
+
+      required: data.required ?? false,
+
+      visible: data.visible ?? true,
 
 
       updatedAt: Timestamp.now(),
 
     }
-
   );
 
 }
@@ -114,17 +111,47 @@ export async function updateColumn(id, data) {
 
 
 
+// Save drag and drop order
+export async function updateColumnArrangement(
+  columns
+) {
+
+  const batch = writeBatch(db);
+
+
+  columns.forEach(
+    (column, index) => {
+
+      const columnRef = doc(
+        db,
+        "columns",
+        column.id
+      );
+
+
+      batch.update(
+        columnRef,
+        {
+          order: index,
+          updatedAt: Timestamp.now(),
+        }
+      );
+
+    }
+  );
+
+
+  return batch.commit();
+
+}
 
 
 
-// Delete a column
+
 export async function deleteColumn(id) {
 
-
-  return await deleteDoc(
-
+  return deleteDoc(
     doc(db, "columns", id)
-
   );
 
 }

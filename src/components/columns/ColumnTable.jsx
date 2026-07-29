@@ -1,62 +1,106 @@
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+
 import ColumnRow from "./ColumnRow";
 
 export default function ColumnTable({
   columns,
+  handleEdit,
   handleDelete,
-  handleEdit
+  handleDragEnd,
 }) {
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
+
+
   return (
-    <table className="bg-white shadow rounded-lg w-full overflow-hidden">
+    <div className="bg-white rounded-xl shadow border overflow-hidden flex flex-col">
 
-      <thead>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
 
-        <tr className="bg-blue-600 text-white">
+        <SortableContext
+          items={columns.map((c) => c.id)}
+          strategy={verticalListSortingStrategy}
+        >
 
-          <th className="p-3 text-left">Label</th>
+          <div className="overflow-auto max-h-[600px]">
 
-          <th className="text-left">Field</th>
+            <table className="w-full min-w-[700px]">
 
-          <th>Type</th>
+              <thead className="bg-blue-600 text-white sticky top-0 z-10">
 
-          <th>Required</th>
+                <tr>
 
-          <th>Visible</th>
+                  <th className="w-12 p-3"></th>
 
-          <th>Action</th>
+                  <th className="p-3 text-left">
+                    Column
+                  </th>
 
-        </tr>
+                  <th className="p-3">
+                    Type
+                  </th>
 
-      </thead>
+                  <th className="p-3">
+                    Required
+                  </th>
 
-      <tbody>
+                  <th className="p-3">
+                    Visible
+                  </th>
 
-        {columns.length === 0 ? (
+                  <th className="p-3">
+                    Action
+                  </th>
 
-          <tr>
+                </tr>
 
-            <td
-              colSpan="6"
-              className="text-center p-5"
-            >
-              No columns created.
-            </td>
+              </thead>
 
-          </tr>
 
-        ) : (
+              <tbody>
 
-          columns.map((column) => (
-            <ColumnRow
-              column={column}
-              handleEdit={handleEdit}
-              handleDelete={handleDelete}
-            />
-          ))
+                {columns.map((column) => (
 
-        )}
+                  <ColumnRow
+                    key={column.id}
+                    column={column}
+                    handleEdit={handleEdit}
+                    handleDelete={handleDelete}
+                  />
 
-      </tbody>
+                ))}
 
-    </table>
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </SortableContext>
+
+      </DndContext>
+
+    </div>
   );
 }
