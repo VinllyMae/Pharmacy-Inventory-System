@@ -220,13 +220,6 @@ export default function ProductTable({
               ))}
 
 
-              {hasMoreColumns && (
-                <th className="p-4 text-center">
-                  View
-                </th>
-              )}
-
-
               <th className="p-4 text-center">
                 Actions
               </th>
@@ -307,25 +300,6 @@ export default function ProductTable({
                       );
 
                     })}
-
-
-                    {hasMoreColumns && (
-
-                      <td className="p-4 text-center">
-
-                        <button
-                          title="View all fields"
-                          onClick={() =>
-                            setSelectedProduct(product)
-                          }
-                          className="p-2 rounded-lg bg-slate-600 hover:bg-slate-700 text-white"
-                        >
-                          <Eye size={16} />
-                        </button>
-
-                      </td>
-
-                    )}
 
 
                     <td className="p-4">

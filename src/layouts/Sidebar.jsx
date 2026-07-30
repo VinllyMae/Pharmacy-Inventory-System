@@ -150,7 +150,7 @@ export default function Sidebar() {
                         text-slate-800
                     ">
 
-                        MedTrack
+                        GenRx
 
                     </h1>
 

@@ -25,7 +25,7 @@ if (favicon) {
 
 
 // Update browser title
-document.title = "MedTrack | Pharmacy Inventory System";
+document.title = "GenRx | Pharmacy Inventory System";
 
 
 ReactDOM.createRoot(

@@ -121,7 +121,7 @@ export default function Login() {
                             text-slate-800
                         ">
 
-                            MedTrack
+                            GenRx
 
                         </h1>
 
@@ -370,7 +370,7 @@ export default function Login() {
 
                                 type="email"
 
-                                placeholder="admin@medtrack.com"
+                                placeholder="admin@GenRx.com"
 
 
                                 value={email}
@@ -517,7 +517,7 @@ export default function Login() {
                         <Activity size={15}/>
 
 
-                        © 2026 MedTrack Pharmacy System
+                        © 2026 GenRx Pharmacy System
 
 
 

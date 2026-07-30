@@ -6,7 +6,7 @@ export default function Home() {
       </h1>
 
       <p className="mt-2 text-gray-600">
-        Welcome to MedTrack Pharmacy Inventory System
+        Welcome to GenRx Pharmacy Inventory System
       </p>
     </div>
   );
