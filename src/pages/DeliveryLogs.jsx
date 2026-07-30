@@ -5,11 +5,15 @@ import {
     FaPrint,
     FaPlus,
     FaSearch,
+    FaChevronLeft,
+    FaChevronRight,
 } from "react-icons/fa";
 
 import Modal from "../components/ui/Modal";
 import DeliveryReceipt from "./DeliveryReceipt";
 import { getDeliveries } from "../services/deliveryService";
+
+const ITEMS_PER_PAGE = 5;
 
 export default function DeliveryLogs() {
     const [deliveries, setDeliveries] = useState([]);
@@ -17,6 +21,7 @@ export default function DeliveryLogs() {
     const [loading, setLoading] = useState(true);
 
     const [search, setSearch] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
 
     const [selectedDelivery, setSelectedDelivery] = useState(null);
     const [openReceipt, setOpenReceipt] = useState(false);
@@ -37,6 +42,8 @@ export default function DeliveryLogs() {
                     d.siNo?.toLowerCase().includes(keyword)
             )
         );
+
+        setCurrentPage(1);
     }, [search, deliveries]);
 
     async function loadDeliveries() {
@@ -66,6 +73,21 @@ export default function DeliveryLogs() {
         }, 300);
     }
 
+    const totalPages = Math.max(
+        1,
+        Math.ceil(filtered.length / ITEMS_PER_PAGE)
+    );
+
+    const paginatedDeliveries = filtered.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
+
+    function goToPage(page) {
+        if (page < 1 || page > totalPages) return;
+        setCurrentPage(page);
+    }
+
     if (loading) {
         return <div className="p-6">Loading...</div>;
     }
@@ -77,13 +99,7 @@ export default function DeliveryLogs() {
                 <div className="flex justify-between items-center mb-6">
 
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-800">
-                            Delivery Logs
-                        </h1>
-
-                        <p className="text-slate-500">
-                            View all exported delivery receipts
-                        </p>
+                       
                     </div>
 
                     <button
@@ -132,7 +148,7 @@ export default function DeliveryLogs() {
 
                         <tbody>
 
-                            {filtered.map((delivery) => (
+                            {paginatedDeliveries.map((delivery) => (
 
                                 <tr
                                     key={delivery.id}
@@ -192,6 +208,85 @@ export default function DeliveryLogs() {
 
                         <div className="text-center py-10 text-gray-500">
                             No deliveries found.
+                        </div>
+
+                    )}
+
+                    {filtered.length > 0 && (
+
+                        <div className="flex items-center justify-between border-t px-4 py-3">
+
+                            <p className="text-sm text-slate-500">
+                                Showing{" "}
+                                {(currentPage - 1) * ITEMS_PER_PAGE + 1}
+                                {"–"}
+                                {Math.min(
+                                    currentPage * ITEMS_PER_PAGE,
+                                    filtered.length
+                                )}{" "}
+                                of {filtered.length}
+                            </p>
+
+                            <div className="flex items-center gap-1">
+
+                                <button
+                                    onClick={() => goToPage(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className="
+                                        p-2
+                                        rounded-lg
+                                        text-slate-600
+                                        hover:bg-slate-100
+                                        disabled:opacity-40
+                                        disabled:cursor-not-allowed
+                                    "
+                                >
+                                    <FaChevronLeft size={12} />
+                                </button>
+
+                                {Array.from(
+                                    { length: totalPages },
+                                    (_, i) => i + 1
+                                ).map((page) => (
+
+                                    <button
+                                        key={page}
+                                        onClick={() => goToPage(page)}
+                                        className={`
+                                            w-8
+                                            h-8
+                                            rounded-lg
+                                            text-sm
+                                            font-medium
+                                            ${
+                                                page === currentPage
+                                                    ? "bg-blue-600 text-white"
+                                                    : "text-slate-600 hover:bg-slate-100"
+                                            }
+                                        `}
+                                    >
+                                        {page}
+                                    </button>
+
+                                ))}
+
+                                <button
+                                    onClick={() => goToPage(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className="
+                                        p-2
+                                        rounded-lg
+                                        text-slate-600
+                                        hover:bg-slate-100
+                                        disabled:opacity-40
+                                        disabled:cursor-not-allowed
+                                    "
+                                >
+                                    <FaChevronRight size={12} />
+                                </button>
+
+                            </div>
+
                         </div>
 
                     )}

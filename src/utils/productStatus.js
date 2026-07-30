@@ -1,9 +1,21 @@
 export function getProductStatus(product, columns = []) {
-  const today = new Date();
-  const expiry = new Date(product.expiryDate);
+  const expiryColumn = columns.find(
+    (c) => c.label.trim().toLowerCase() === "expiry"
+  );
 
-  // Normalize to date only (ignore time)
+  const expiryValue = product.customFields?.[expiryColumn?.id];
+
+  const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  if (!expiryColumn || !expiryValue) {
+    return {
+      text: product.quantity <= 10 ? "Low Stock" : "Good",
+      color: product.quantity <= 10 ? "bg-yellow-500" : "bg-green-600",
+    };
+  }
+
+  const expiry = new Date(expiryValue);
   expiry.setHours(0, 0, 0, 0);
 
   if (expiry < today) {
@@ -13,15 +25,14 @@ export function getProductStatus(product, columns = []) {
     };
   }
 
-  const daysRemaining =
-    (expiry - today) / (1000 * 60 * 60 * 24);
+  const daysRemaining = (expiry - today) / (1000 * 60 * 60 * 24);
 
   const expiryDaysColumn = columns.find(
     (c) => c.label.trim().toLowerCase() === "expiry days"
   );
 
   const productThreshold = Number(
-    product.customFields?.[expiryDaysColumn?.field]
+    product.customFields?.[expiryDaysColumn?.id]
   );
 
   const threshold =

@@ -11,7 +11,7 @@ import {
 
 import { getProductStatus } from "../../utils/productStatus";
 import Button from "../ui/Button";
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 8;
 const MAX_COLUMNS = 11;
 
 export default function ProductTable({
