@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 import {
     FaEye,
     FaPrint,
@@ -7,11 +8,14 @@ import {
     FaSearch,
     FaChevronLeft,
     FaChevronRight,
+    FaFileExcel,
 } from "react-icons/fa";
 
 import Modal from "../components/ui/Modal";
 import DeliveryReceipt from "./DeliveryReceipt";
 import { getDeliveries } from "../services/deliveryService";
+import { getProducts } from "../services/productService";
+import { getColumns } from "../services/columnService";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -19,6 +23,7 @@ export default function DeliveryLogs() {
     const [deliveries, setDeliveries] = useState([]);
     const [filtered, setFiltered] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [exporting, setExporting] = useState(false);
 
     const [search, setSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -73,6 +78,195 @@ export default function DeliveryLogs() {
         }, 300);
     }
 
+    async function handleExportExcel() {
+    setExporting(true);
+
+    try {
+        const [deliveries, products, columns] = await Promise.all([
+            getDeliveries(),
+            getProducts(),
+            getColumns(),
+        ]);
+
+        const workbook = XLSX.utils.book_new();
+
+        const formatValue = (value) => {
+            if (value == null) return "";
+
+            if (value?.toDate) {
+                return value.toDate().toLocaleString("en-PH");
+            }
+
+            if (value?.seconds) {
+                return new Date(value.seconds * 1000).toLocaleString("en-PH");
+            }
+
+            if (
+                typeof value === "string" &&
+                /^\d{4}-\d{2}-\d{2}/.test(value)
+            ) {
+                return new Date(value).toLocaleDateString("en-PH");
+            }
+
+            return value;
+        };
+
+        const flattenObject = (obj, prefix = "") => {
+            const result = {};
+
+            Object.entries(obj || {}).forEach(([key, value]) => {
+                const newKey = prefix ? `${prefix}.${key}` : key;
+
+                if (
+                    value &&
+                    typeof value === "object" &&
+                    !Array.isArray(value) &&
+                    !value.toDate &&
+                    !value.seconds
+                ) {
+                    Object.assign(result, flattenObject(value, newKey));
+                } else {
+                    result[newKey] = formatValue(value);
+                }
+            });
+
+            return result;
+        };
+
+        // =========================
+        // Deliveries
+        // =========================
+        const deliveryRows = deliveries.map((delivery) => {
+            const { items, ...rest } = delivery;
+            return flattenObject(rest);
+        });
+
+        XLSX.utils.book_append_sheet(
+            workbook,
+            XLSX.utils.json_to_sheet(deliveryRows),
+            "Deliveries"
+        );
+
+        // =========================
+        // Delivery Items
+        // =========================
+        const itemRows = [];
+
+        console.log("================================");
+        console.log("Total Deliveries:", deliveries.length);
+
+        deliveries.forEach((delivery) => {
+            console.log(
+                `${delivery.siNo} -> ${
+                    Array.isArray(delivery.items)
+                        ? delivery.items.length
+                        : 0
+                } items`
+            );
+
+            const items = Array.isArray(delivery.items)
+                ? delivery.items
+                : [];
+
+            items.forEach((item, index) => {
+                const row = {};
+
+                Object.entries(delivery).forEach(([key, value]) => {
+                    if (key === "items") return;
+                    row[key] = formatValue(value);
+                });
+
+                row.itemNumber = index + 1;
+
+                Object.entries(item).forEach(([key, value]) => {
+                    if (key === "customFields") return;
+                    row[key] = formatValue(value);
+                });
+
+                Object.entries(item.customFields || {}).forEach(
+                    ([columnId, value]) => {
+                        const column = columns.find(
+                            (c) => c.id === columnId
+                        );
+
+                        row[column?.label || columnId] =
+                            formatValue(value);
+                    }
+                );
+
+                itemRows.push(row);
+            });
+        });
+
+        console.log("================================");
+        console.log("Total Export Rows:", itemRows.length);
+        console.table(itemRows);
+
+        XLSX.utils.book_append_sheet(
+            workbook,
+            XLSX.utils.json_to_sheet(itemRows),
+            "Delivery Items"
+        );
+
+        // =========================
+        // Products
+        // =========================
+        const productRows = products.map((product) => {
+            const row = {};
+
+            Object.entries(product).forEach(([key, value]) => {
+                if (key !== "customFields") {
+                    row[key] = formatValue(value);
+                }
+            });
+
+            Object.entries(product.customFields || {}).forEach(
+                ([columnId, value]) => {
+                    const column = columns.find(
+                        (c) => c.id === columnId
+                    );
+
+                    row[column?.label || columnId] =
+                        formatValue(value);
+                }
+            );
+
+            return row;
+        });
+
+        XLSX.utils.book_append_sheet(
+            workbook,
+            XLSX.utils.json_to_sheet(productRows),
+            "Products"
+        );
+
+        // =========================
+        // Columns
+        // =========================
+        const columnRows = columns.map((column) =>
+            flattenObject(column)
+        );
+
+        XLSX.utils.book_append_sheet(
+            workbook,
+            XLSX.utils.json_to_sheet(columnRows),
+            "Columns"
+        );
+
+        const today = new Date().toISOString().slice(0, 10);
+
+        XLSX.writeFile(
+            workbook,
+            `full-backup-${today}.xlsx`
+        );
+    } catch (error) {
+        console.error(error);
+        alert("Failed to export data.");
+    } finally {
+        setExporting(false);
+    }
+}
+
     const totalPages = Math.max(
         1,
         Math.ceil(filtered.length / ITEMS_PER_PAGE)
@@ -99,16 +293,29 @@ export default function DeliveryLogs() {
                 <div className="flex justify-between items-center mb-6">
 
                     <div>
-                       
+
                     </div>
 
-                    <button
-                        onClick={() => navigate("/delivery")}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2"
-                    >
-                        <FaPlus />
-                        New Delivery
-                    </button>
+                    <div className="flex items-center gap-2">
+
+                        <button
+                            onClick={handleExportExcel}
+                            disabled={exporting}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <FaFileExcel />
+                            {exporting ? "Exporting..." : "Export to Excel"}
+                        </button>
+
+                        <button
+                            onClick={() => navigate("/delivery")}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2"
+                        >
+                            <FaPlus />
+                            New Delivery
+                        </button>
+
+                    </div>
 
                 </div>
 
@@ -258,10 +465,9 @@ export default function DeliveryLogs() {
                                             rounded-lg
                                             text-sm
                                             font-medium
-                                            ${
-                                                page === currentPage
-                                                    ? "bg-blue-600 text-white"
-                                                    : "text-slate-600 hover:bg-slate-100"
+                                            ${page === currentPage
+                                                ? "bg-blue-600 text-white"
+                                                : "text-slate-600 hover:bg-slate-100"
                                             }
                                         `}
                                     >
